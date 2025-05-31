@@ -732,37 +732,79 @@
                         pdfBtn.textContent = 'Descargar PDF corregido';
                         pdfBtn.onclick = generatePDF;
                         document.getElementById('score').appendChild(pdfBtn);
-                        // Nuevo: botón guardar en Google Sheet
+
+                        // MODIFICACIÓN COMPLETA DEL BOTÓN DE GUARDAR EN GOOGLE SHEET
                         const saveBtn = document.createElement('button');
                         saveBtn.className = 'btn btn-outline-success fw-bold d-block mx-auto mt-3';
-                        saveBtn.textContent = 'Guardar en Google Sheet';
-                        saveBtn.onclick = function() {
-                            // Enviar datos a Google Apps Script
-                            const nombre = document.getElementById('residentName').value.trim();
-                            const fechaExamen = document.getElementById('examDate').value;
-                            const nombreExamen = document.querySelector('h1').innerText.trim();
-                            const nota = finalScore;
-                            fetch('https://script.google.com/macros/s/AKfycbz_J4zfRNbug9Yx9BMISpxFP7Yox0BCmuq1_Hod5h2xDmnOXO9jHGjsde8O-ElfKrSJvg/exec', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    nombre: nombre,
-                                    fechaExamen: fechaExamen,
-                                    nombreExamen: nombreExamen,
-                                    nota: nota
-                                })
-                            })
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data.status === 'success') {
-                                    alert('Guardado en Google Sheet correctamente');
-                                } else {
-                                    alert('Error al guardar: ' + data.message);
-                                }
-                            })
-                            .catch(err => {
-                                alert('Error de conexión: ' + err.message);
+                        saveBtn.textContent = 'Guardar resultados en Google Sheet'; // Texto más descriptivo
+                        saveBtn.onclick = async function() { // Función asíncrona para usar await
+                            const residentName = document.getElementById('residentName').value.trim();
+                            const examDate = document.getElementById('examDate').value;
+
+                            if (!residentName || !examDate || finalScore === undefined) {
+                                showAlert('Faltan datos del examen o del residente para guardar.', 'danger');
+                                return;
+                            }
+
+                            // Prepara los detalles de las respuestas en un formato que el Apps Script pueda entender
+                            const detailedAnswers = questions.map((q, idx) => {
+                                const userAnswerIndex = userAnswers[idx];
+                                const isCorrect = userAnswerIndex === q.answer;
+                                // Obtener el texto de la opción seleccionada por el usuario
+                                const userAnswerText = (typeof userAnswerIndex === 'number' && userAnswerIndex >= 0 && userAnswerIndex < q.options.length)
+                                                        ? q.options[userAnswerIndex]
+                                                        : 'No respondido';
+                                // Obtener el texto de la opción correcta
+                                const correctAnswerText = (typeof q.answer === 'number' && q.answer >= 0 && q.answer < q.options.length)
+                                                         ? q.options[q.answer]
+                                                         : 'No disponible';
+                                
+                                // Limpiar el texto de la pregunta (eliminar HTML) para incluirlo en el detalle
+                                const cleanQText = q.q.replace(/<img[^>]*>/g, '').replace(/<video[^>]*>.*?<\/video>/g, '').replace(/<div[^>]*>.*?<\/div>/g, '').trim();
+
+                                return {
+                                    questionNum: idx + 1,
+                                    questionText: cleanQText, // Opcional: guardar el texto de la pregunta también
+                                    userAnswer: userAnswerText,
+                                    correctAnswer: correctAnswerText,
+                                    isCorrect: isCorrect
+                                };
                             });
+
+                            const dataToSend = {
+                                name: residentName,    // Coincide con lo esperado por Apps Script
+                                date: examDate,       // Coincide con lo esperado por Apps Script
+                                finalScore: finalScore, // Coincide con lo esperado por Apps Script
+                                answers: detailedAnswers // Array de objetos con el detalle de las respuestas
+                            };
+
+                            try {
+                                // URL de tu Apps Script. ¡Asegúrate de que esta URL sea la correcta y esté desplegada como aplicación web para 'Cualquier persona'!
+                                const APP_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz_J4zfRNbug9Yx9BMISpxFP7Yox0BCmuq1_Hod5h2xDmnOXO9jHGjsde8O-ElfKrSJvg/exec'; 
+
+                                const response = await fetch(APP_SCRIPT_WEB_APP_URL, {
+                                    method: 'POST',
+                                    // *** CORRECCIÓN CLAVE AQUÍ: Content-Type para evitar preflight OPTIONS ***
+                                    headers: {
+                                        'Content-Type': 'text/plain;charset=utf-8' 
+                                    },
+                                    body: JSON.stringify(dataToSend) // Envía los datos como una cadena JSON
+                                });
+
+                                const result = await response.json(); // Parsea la respuesta JSON del script
+
+                                // *** CORRECCIÓN CLAVE AQUÍ: La comprobación de 'status' debe coincidir (APPS Script envía 'SUCCESS' en mayúsculas) ***
+                                if (result.status === 'SUCCESS') { 
+                                    showAlert('Resultados guardados en Google Sheet exitosamente.', 'success');
+                                    saveBtn.disabled = true; // Deshabilita el botón para evitar envíos duplicados
+                                } else {
+                                    showAlert(`Error al guardar: ${result.message}`, 'danger');
+                                    console.error('Apps Script Error:', result.message);
+                                }
+                            } catch (error) {
+                                console.error('Error al conectar con Google Apps Script:', error);
+                                showAlert(`Error de conexión al guardar los resultados. Detalles: ${error.message}`, 'danger');
+                            }
                         };
                         document.getElementById('score').appendChild(saveBtn);
                         pdfGenerated = true;
