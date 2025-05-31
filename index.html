@@ -779,12 +779,12 @@
                             };
 
                             try {
-                                // URL de tu Apps Script. ¡Asegúrate de que esta URL sea la correcta y esté desplegada como aplicación web para 'Cualquier persona'!
-                                const APP_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz_J4zfRNbug9Yx9BMISpxFP7Yox0BCmuq1_Hod5h2xDmnOXO9jHGjsde8O-ElfKrSJvg/exec'; 
+                                // *** URL ACTUALIZADA DE TU APPS SCRIPT ***
+                                const APP_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw__FNMmkADMMJfJcec7wiY2X06Z7R9BnIU-ObQ6P1tiOBr5gSfyjuuomdMVKgkssK9HA/exec'; 
 
                                 const response = await fetch(APP_SCRIPT_WEB_APP_URL, {
                                     method: 'POST',
-                                    // *** CORRECCIÓN CLAVE AQUÍ: Content-Type para evitar preflight OPTIONS ***
+                                    // Sigue siendo 'text/plain' para evitar problemas CORS con preflight OPTIONS
                                     headers: {
                                         'Content-Type': 'text/plain;charset=utf-8' 
                                     },
@@ -793,7 +793,7 @@
 
                                 const result = await response.json(); // Parsea la respuesta JSON del script
 
-                                // *** CORRECCIÓN CLAVE AQUÍ: La comprobación de 'status' debe coincidir (APPS Script envía 'SUCCESS' en mayúsculas) ***
+                                // El status del Apps Script es 'SUCCESS' en mayúsculas
                                 if (result.status === 'SUCCESS') { 
                                     showAlert('Resultados guardados en Google Sheet exitosamente.', 'success');
                                     saveBtn.disabled = true; // Deshabilita el botón para evitar envíos duplicados
