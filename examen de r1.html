@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Examen de Residencia - Primera Evaluación: RCP y Manejo de la Vía Aérea</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Anime.js -->
+    <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
+    <!-- jsPDF CDN for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0a1633; /* azul noche profundo */
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            /* Fondo galáctico sutil */
+            background-image:
+                /* Nebulosas etéreas turquesa */
+                radial-gradient(ellipse 40% 20% at 70% 20%, rgba(64,224,208,0.10) 0%, rgba(10,22,51,0.0) 100%),
+                radial-gradient(ellipse 30% 15% at 20% 70%, rgba(64,224,208,0.08) 0%, rgba(10,22,51,0.0) 100%),
+                /* Nebulosa dorada sutil */
+                radial-gradient(ellipse 20% 10% at 80% 80%, rgba(218,165,32,0.07) 0%, rgba(10,22,51,0.0) 100%),
+                /* Líneas geométricas abstractas doradas */
+                repeating-linear-gradient(120deg, transparent, transparent 180px, rgba(218,165,32,0.04) 190px, transparent 200px),
+                repeating-linear-gradient(60deg, transparent, transparent 220px, rgba(64,224,208,0.03) 230px, transparent 240px),
+                /* Estrellas pequeñas */
+                url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="1" fill="%23DAA520"/><circle cx="80" cy="30" r="0.7" fill="%2340E0D0"/><circle cx="60" cy="80" r="0.8" fill="%23DAA520"/><circle cx="30" cy="60" r="0.6" fill="%2340E0D0"/><circle cx="90" cy="90" r="0.5" fill="%23DAA520"/></svg>');
+            background-size: cover, cover, cover, 100% 100%, 100% 100%, 100px 100px;
+            background-repeat: no-repeat, no-repeat, no-repeat, repeat, repeat, repeat;
+            background-attachment: fixed;
+        }
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            background: rgba(255,255,255,0.97);
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 30px 20px;
+        }
+        h1 { color: #1877f2; text-align: center; margin-bottom: 30px; }
+        .question { margin-bottom: 30px; padding: 20px; border-radius: 8px; background: #f7faff; box-shadow: 0 1px 4px rgba(24,119,242,0.04); }
+        .question-anim {
+            will-change: transform, opacity;
+        }
+        .resumen-pregunta {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        .question h2 { font-size: 1.1rem; color: #222; margin-bottom: 15px; }
+        .options label { display: block; margin-bottom: 10px; padding: 8px 12px; border-radius: 6px; cursor: pointer; background: #f0f2f5; transition: background 0.2s; }
+        .options input[type="radio"] { margin-right: 10px; }
+        .options label:hover { background: #e4e6eb; }
+        #submitBtn {
+            background-color: #28a745 !important; /* Verde Bootstrap con !important para forzar */
+            color: #ffffff !important; /* Texto blanco, con !important */
+            border: none;
+            padding: 12px 32px;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 30px auto 0 auto;
+            display: block; /* Visible por defecto */
+        }
+        /* Estilo para el botón deshabilitado */
+        #submitBtn:disabled {
+            background-color: #6c757d !important; /* Gris para deshabilitado */
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        #score { text-align: center; font-size: 1.2rem; margin-top: 30px; color: #1877f2; }
+        .correct { color: #155724; background: #d4edda; border-radius: 5px; padding: 8px; }
+        .incorrect { color: #721c24; background: #f8d7da; border-radius: 5px; padding: 8px; }
+        .form-label.residente-label {
+            font-weight: 600;
+            font-size: 1.08rem;
+            letter-spacing: 0.01em;
+            color: #174ea6;
+            margin-bottom: 7px;
+            display: block;
+        }
+        .input-group.residente-group {
+            box-shadow: 0 2px 8px rgba(24,119,242,0.07);
+            border-radius: 12px;
+            background: #f7faff;
+            transition: box-shadow 0.2s;
+        }
+        .input-group.residente-group:focus-within {
+            box-shadow: 0 4px 16px rgba(24,119,242,0.13);
+        }
+        .input-group .form-control.residente-input {
+            border-radius: 0 12px 12px 0 !important;
+            border: none;
+            background: transparent;
+            box-shadow: none;
+            font-size: 1.05rem;
+            padding-left: 0.5rem;
+        }
+        .input-group-text.residente-icon {
+            background: transparent;
+            border: none;
+            border-radius: 12px 0 0 12px;
+            font-size: 1.3rem;
+            color: #1877f2;
+            padding-right: 0.3rem;
+        }
+        @media (max-width: 576px) {
+            .input-group.residente-group {
+                border-radius: 8px;
+            }
+            .input-group .form-control.residente-input {
+                font-size: 1rem;
+            }
+        }
+    </style>
+    <!-- Bootstrap JS (for components if needed) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Examen de Residencia - Primera Evaluación<br>Bloque: RCP y Manejo de la Vía Aérea</h1>
+        <!-- Pre-exam info section -->
+        <div id="preExam" class="mb-4">
+            <div class="mb-3">
+                <label for="residentName" class="form-label residente-label"><b>Nombre del residente:</b></label>
+                <div class="input-group residente-group mb-3">
+                    <span class="input-group-text residente-icon"><i class="bi bi-person-circle"></i></span>
+                    <input type="text" id="residentName" class="form-control residente-input" placeholder="Ingrese su nombre completo" required>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="examDate" class="form-label"><b>Fecha del examen:</b></label>
+                <input type="date" id="examDate" class="form-control" required>
+            </div>
+            <button id="startExamBtn" class="btn btn-primary w-100 fw-bold" type="button">Comenzar examen</button>
+        </div>
+        <!-- Exam info and timer -->
+        <div id="examInfo" style="display:none; margin-bottom: 20px;">
+            <span><b>Residente:</b> <span id="showName"></span></span> | 
+            <span><b>Fecha:</b> <span id="showDate"></span></span>
+            <span class="float-end"><b>Tiempo restante:</b> <span id="timer">60:00</span></span>
+        </div>
+        <form id="examForm" style="display:none;">
+            <!-- Las preguntas se insertarán aquí por JavaScript -->
+        </form>
+        <!-- El botón ahora tiene el atributo 'disabled' directamente en HTML -->
+        <button id="submitBtn" class="btn btn-success fw-bold d-block mx-auto mt-4" disabled>Enviar respuestas</button>
+        <div id="score"></div>
+        <div id="alertPlaceholder"></div>
+    </div>
+    <script>
+        const questions = [
+            {
+                q: "1. Un paciente de 62 años con antecedentes de infarto de miocardio anterior extenso y fracción de eyección del ventrículo izquierdo (FEVI) del 30%, ingresa a la unidad de cuidados intensivos con shock cardiogénico. Su presión arterial es de 80/50 mmHg, frecuencia cardíaca de 115 lpm, y presenta signos de hipoperfusión periférica (piel fría, llenado capilar lento). El ecocardiograma es el que se muestra en pantalla.<div class='d-flex justify-content-center align-items-center gap-3 flex-wrap' style='margin:16px 0;'><video src='LVD.mp4' controls style='max-width:400px; width:100%; height:auto;'></video><img src='ChatGPT Image May 31, 2025, 10_44_36 AM.png' alt='Signos vitales' style='max-width:400px; width:100%; height:auto;'></div>¿Cuál de los siguientes fármacos inotrópicos sería la elección más adecuada para mejorar la contractilidad y el gasto cardíaco, considerando su mecanismo de acción predominante sobre los receptores β1 adrenérgicos con efectos vasodilatadores periféricos moderados mediados por receptores β2?",
+                options: [
+                    "A) Fenilefrina",
+                    "B) Noradrenalina",
+                    "C) Dobutamina",
+                    "D) Vasopresina"
+                ],
+                answer: 2
+            },
+            {
+                q: "2. Durante una reanimación cardiopulmonar (RCP) en un paciente con asistolia, se administra adrenalina según las guías actuales. ¿Cuál es el principal efecto fisiológico de la adrenalina mediado por sus receptores α1 que se considera crucial para mejorar la perfusión coronaria durante las compresiones torácicas?",
+                options: [
+                    "A) Aumento de la contractilidad miocárdica y frecuencia cardíaca.",
+                    "B) Vasoconstricción periférica que incrementa la presión diastólica aórtica.",
+                    "C) Broncodilatación que mejora la oxigenación.",
+                    "D) Estabilización de la membrana del miocito, reduciendo el umbral de fibrilación."
+                ],
+                answer: 1
+            },
+            {
+                q: "3. Una mujer de 70 años con antecedentes de hipertensión arterial y diabetes mellitus tipo 2 es admitida por shock séptico refractario a volumen. Su presión arterial media (PAM) es de 55 mmHg a pesar de una adecuada resucitación con fluidos. El ecocardiograma transtorácico revela una función sistólica ventricular izquierda hiperdinámica. Se decide iniciar un vasopresor. Considerando la necesidad de aumentar la resistencia vascular sistémica con un mínimo efecto cronotrópico e inotrópico directo, y basándose en los perfiles farmacológicos discutidos, ¿cuál de los siguientes sería el agente más específico?",
+                options: [
+                    "A) Isoproterenol",
+                    "B) Fenilefrina",
+                    "C) Adrenalina",
+                    "D) Milrinona"
+                ],
+                answer: 1
+            },
+            {
+                q: "4. Según la evidencia presentada sobre el uso de vasopresina en la parada cardíaca, se observó una mejora en la supervivencia al ingreso hospitalario, pero no en la supervivencia al alta hospitalaria ni en el pronóstico neurológico favorable. ¿Cuál de las siguientes afirmaciones explicaría mejor esta discrepancia, considerando el mecanismo de acción de la vasopresina y la fisiopatología de la parada cardíaca?",
+                options: [
+                    "A) La vasopresina produce un efecto inotrópico sostenido que mejora la función cardíaca inicial pero no previene el daño por reperfusión.",
+                    "B) El principal efecto vasoconstrictor de la vasopresina sobre los receptores V1 mejora transitoriamente la presión de perfusión coronaria facilitando el ROSC, pero no impacta significativamente la lesión cerebral anóxica ni la disfunción multiorgánica post-parada.",
+                    "C) La vasopresina tiene una vida media muy corta, lo que limita su efectividad más allá de la fase inicial de la resucitación.",
+                    "D) Los estudios que demostraron beneficio inicial utilizaron dosis supra-fisiológicas de vasopresina con efectos deletéreos tardíos."
+                ],
+                answer: 1
+            },
+            {
+                q: "5. Un paciente de 55 años se encuentra en fibrilación ventricular (FV) persistente a pesar de tres intentos de desfibrilación, compresiones torácicas de alta calidad y una dosis de adrenalina. De acuerdo con las directrices de la AHA 2025 mencionadas en la presentación para el manejo de arritmias en RCP, ¿cuál sería la siguiente intervención farmacológica más apropiada a considerar?",
+                options: [
+                    "A) Administrar una segunda dosis de adrenalina de 1 mg IV.",
+                    "B) Administrar sulfato de magnesio 2 g IV.",
+                    "C) Administrar amiodarona 300 mg IV.",
+                    "D) Administrar bicarbonato de sodio 1 mEq/kg IV."
+                ],
+                answer: 2
+            },
+            {
+                q: "6. Un paciente de 70 años con un marcapasos DDD programado a una frecuencia base de 60 lpm, un intervalo AV (IAV) de 180 ms y un período refractario auricular post-ventricular (PVARP) de 270 ms, presenta episodios de taquicardia regular a 110 lpm que se inician y terminan súbitamente. Durante la taquicardia, el ECG muestra espigas de estimulación auricular seguidas de espigas de estimulación ventricular, sin evidencia de actividad auricular intrínseca que justifique el seguimiento a esa frecuencia. La frecuencia de la taquicardia coincide con el límite superior de seguimiento (upper tracking rate, UTR) programado. ¿Cuál es la causa más probable de esta taquicardia mediada por marcapasos (PMT)?",
+                options: [
+                    "A) Un IAV excesivamente largo que permite la conducción retrógrada VA y su sensado auricular fuera del PVARP.",
+                    "B) Un PVARP excesivamente corto que permite el sensado de una extrasístole auricular o una onda P retrógrada, iniciando el seguimiento.",
+                    "C) Fallo de captura ventricular intermitente que lleva a un aumento compensatorio de la frecuencia auricular estimulada.",
+                    "D) Sobresensado de miopotenciales que son interpretados como actividad auricular intrínseca rápida."
+                ],
+                answer: 1
+            },
+            {
+                q: "7. Al comparar las formas de onda monofásicas y bifásicas para la desfibrilación transtorácica, ¿cuál de las siguientes afirmaciones es la más precisa respecto a la eficacia y seguridad según la evidencia actual?",
+                options: [
+                    "A) Las ondas monofásicas requieren una impedancia transtorácica significativamente menor para ser efectivas.",
+                    "B) Las ondas bifásicas suelen lograr la desfibrilación con niveles de energía más bajos, lo que podría reducir el daño miocárdico.",
+                    "C) La incidencia de quemaduras cutáneas es notablemente mayor con las ondas bifásicas debido a la inversión de la polaridad.",
+                    "D) Las ondas monofásicas tienen una mayor tasa de éxito en la reversión de la fibrilación ventricular de larga duración (>10 minutos)."
+                ],
+                answer: 1
+            },
+            {
+                q: "8. Un paciente de 68 años, con antecedentes de cardiopatía isquémica, acude a urgencias por palpitaciones y mareo intenso de una hora de evolución. Su presión arterial es de 85/55 mmHg, frecuencia cardíaca de 170 lpm, está pálido y sudoroso. <br><img src='taquicardica ventricular monomorfica.jpg' alt='ECG taquicardia ventricular monomórfica' style='max-width:400px; display:block; margin:16px auto;'> Siguiendo las recomendaciones de ACLS para taquicardia inestable, ¿cuál es la intervención eléctrica inicial más apropiada?",
+                options: [
+                    "A) Desfibrilación no sincronizada inmediata con 200J bifásicos.",
+                    "B) Cardioversión sincronizada con 50J bifásicos.",
+                    "C) Cardioversión sincronizada con 100J bifásicos (o equivalente monofásico).",
+                    "D) Administrar un bolo de adenosina 6 mg IV rápido antes de la terapia eléctrica."
+                ],
+                answer: 2
+            },
+            {
+                q: "9. En el ECG de un paciente portador de un marcapasos VVI programado a 60 lpm, se observan espigas de marcapasos consistentemente a una frecuencia de 60/min. Cada espiga de marcapasos va seguida de un complejo QRS ancho con morfología de bloqueo de rama izquierda, excepto cuando aparece un complejo QRS intrínseco estrecho del paciente (a una frecuencia de 45 lpm), en cuyo caso la espiga del marcapasos se inhibe correctamente. Sin embargo, en varias ocasiones, se observa una espiga de marcapasos que no es seguida por un complejo QRS, y tras una pausa, el ritmo intrínseco del paciente reaparece. <br><img src='failure to capture.png' alt='Failure to capture marcapasos' style='max-width:400px; display:block; margin:16px auto;'> ¿Qué tipo de disfunción del marcapasos es la más probable?",
+                options: [
+                    "A) Fallo de sensado auricular (undersensing auricular).",
+                    "B) Fallo de captura ventricular.",
+                    "C) Sobresensado ventricular (oversensing) de señales extracardíacas.",
+                    "D) Estimulación en el período refractario ventricular."
+                ],
+                answer: 1
+            },
+            {
+                q: "10. <img src='aoo y voo.jpg' alt='Modos AOO y VOO' style='max-width:400px; display:block; margin:16px auto;'> La estimulación asincrónica (modos AOO, VOO) se describe como potencialmente inductora de arritmias por competición si existe ritmo cardíaco intrínseco. ¿Cuál es el mecanismo principal por el cual la estimulación ventricular asincrónica (VOO) puede precipitar una arritmia maligna en presencia de actividad ventricular espontánea?",
+                options: [
+                    "A) Generación de extrasístoles ventriculares que pueden iniciar una taquicardia ventricular no sostenida.",
+                    "B) Competencia con el nodo sinusal, llevando a una supresión funcional del mismo y bradicardia severa.",
+                    "C) Caída del estímulo del marcapasos sobre la fase vulnerable del ciclo cardíaco intrínseco (fenómeno R sobre T), pudiendo desencadenar fibrilación ventricular.",
+                    "D) Inducción de bloqueo AV completo debido a la estimulación ventricular constante."
+                ],
+                answer: 2
+            },
+            {
+                q: "11. <img src='patron aslanger.png' alt='Patrón de Aslanger' style='max-width:400px; display:block; margin:16px auto;'> Un varón de 60 años acude a urgencias con dolor torácico opresivo de 3 horas de evolución. Su electrocardiograma muestra ritmo sinusal, sin elevación del ST que cumpla criterios estándar de IAMCEST en derivaciones contiguas. Sin embargo, se observa una elevación del ST de 1 mm aislada en la derivación III, depresión del ST de 2 mm en V4-V6 con ondas T terminales positivas, y el segmento ST en V1 es más alto que en V2. De acuerdo con los patrones de Infarto de Miocardio por Oclusión (OMI) descritos, ¿qué arteria coronaria probablemente esté ocluida según este 'patrón de Aslanger'?",
+                options: [
+                    "A) Arteria Descendente Anterior (DA) proximal.",
+                    "B) Arteria Coronaria Derecha (ACD) o Arteria Circunfleja (CX) en enfermedad multivaso.",
+                    "C) Primera rama diagonal de la DA.",
+                    "D) Arteria Descendente Anterior (DA) distal."
+                ],
+                answer: 1
+            },
+            {
+                q: "12. <img src='indice de morris.png' alt='Índice de Morris' style='max-width:400px; display:block; margin:16px auto;'> En el diagnóstico electrocardiográfico del crecimiento auricular izquierdo (CAI), uno de los criterios más útiles en la práctica clínica se basa en el producto entre la amplitud del componente negativo de la onda P en V1 (en mm) y su duración (en ms). ¿Cuál es el valor umbral de este producto que sugiere la presencia de crecimiento auricular izquierdo?",
+                options: [
+                    "A) ≥ 40 mm·ms",
+                    "B) ≥ 120 ms con muesca en la onda P en derivación II",
+                    "C) Distancia entre los picos de una onda P bimodal > 40 ms en derivación II",
+                    "D) Onda P ≥ 120 ms en derivación I o II con desviación del eje de la P ≥ 0º según la puntuación NYAC"
+                ],
+                answer: 0
+            },
+            {
+                q: "13. Una mujer de 75 años, con antecedentes de hipertensión arterial mal controlada, consulta por disnea progresiva y ortopnea. El ECG muestra un ritmo sinusal a 80 lpm, QRS con duración de 0.14 s, morfología rsR' en V1 y qRs con S empastada en V6. El eje del QRS en el plano frontal está en -60°. Adicionalmente, se observa elevación del ST de 2 mm en V2 y V3 con ondas T negativas concordantes. ¿Cuál es la interpretación electrocardiográfica más completa y preocupante?<br><img src='bloqueo bifascicular anterior.jpg' alt='Bloqueo bifascicular anterior' style='max-width:400px; display:block; margin:16px auto;'>",
+                options: [
+                    "A) Bloqueo de rama izquierda completo con cambios de repolarización secundarios.",
+                    "B) Bloqueo de rama derecha completo aislado con sobrecarga ventricular derecha.",
+                    "C) Bloqueo bifascicular (Bloqueo de rama derecha + Bloqueo fascicular anterior izquierdo) con signos sugestivos de isquemia miocárdica anterior aguda.",
+                    "D) Bloqueo fascicular anterior izquierdo aislado con hipertrofia ventricular izquierda y patrón de sobrecarga."
+                ],
+                answer: 2
+            },
+            {
+                q: "14. Al utilizar el sistema de puntuación de Romhilt-Estes para el diagnóstico de hipertrofia ventricular izquierda (HVI), diferentes criterios aportan puntos al diagnóstico. ¿Cuál de los siguientes hallazgos, referente específicamente a la alteración de la onda P, otorga 3 puntos a esta puntuación?",
+                options: [
+                    "A) Duración de la onda P ≥ 0,09 s en cualquier derivación.",
+                    "B) Voltaje de la onda R en V5 o V6 ≥ 30 mm.",
+                    "C) Componente terminal negativo de la onda P en V1 ≥ 1 mm de profundidad y ≥ 0,04 s de duración.",
+                    "D) Desviación del ÂQRS a -30° o más a la izquierda."
+                ],
+                answer: 2
+            },
+            {
+                q: "15. Los patrones de Wellens (tipo A y tipo B) son reconocidos como indicadores críticos en el electrocardiograma de pacientes con sospecha de síndrome coronario agudo. ¿Qué implicación clínica principal tienen estos patrones en cuanto al estado de la perfusión coronaria y la arteria probablemente afectada?",
+                options: [
+                    "A) Indican un infarto transmural agudo y en curso, con oclusión completa de una arteria coronaria principal.",
+                    "B) Sugieren una estenosis crítica severa, usualmente de la arteria descendente anterior proximal, con reperfusión miocárdica transitoria o inminente reoclusión.",
+                    "C) Representan una isquemia subendocárdica crónica y estable, frecuentemente asociada a enfermedad de tres vasos.",
+                    "D) Son hallazgos de repolarización precoz benigna, sin implicación isquémica aguda."
+                ],
+                answer: 1
+            },
+            {
+                q: "16. Un varón de 62 años sufre una parada cardíaca extrahospitalaria presenciada. Los servicios de emergencia médica (SEM) lo encuentran en fibrilación ventricular (FV). A pesar de tres intentos de desfibrilación estándar (200J bifásicos), RCP de alta calidad continuada, administración de 1 mg de adrenalina y 300 mg de amiodarona, el paciente persiste en FV. Considerando las estrategias contemporáneas para FV refractaria y la disponibilidad de recursos avanzados, ¿cuál de las siguientes intervenciones sería la más apropiada a considerar en este punto, asumiendo un tiempo de respuesta y traslado optimizado?",
+                options: [
+                    "A) Traslado inmediato a un centro con capacidad de intervención coronaria percutánea (ICP) sin más intentos de desfibrilación.",
+                    "B) Administrar una dosis adicional de amiodarona de 150 mg seguida de otro intento de desfibrilación estándar.",
+                    "C) Considerar la aplicación de Desfibrilación Externa Secuencial Doble (DESD) o la activación de un protocolo de Resucitación Cardiopulmonar Extracorpórea (RCP-E).",
+                    "D) Administrar bicarbonato de sodio para corregir la acidosis metabólica y luego intentar una desfibrilación a máxima energía."
+                ],
+                answer: 2
+            },
+            {
+                q: "17. Un paciente en paro cardiorrespiratorio presenta un ritmo de fibrilación ventricular en el monitor. Ya se ha administrado una descarga y se ha realizado 2 minutos de RCP de alta calidad.\n\n¿Cuál es el siguiente paso según el algoritmo ACLS?",
+                options: [
+                    "A. Administrar atropina 1 mg IV",
+                    "B. Administrar epinefrina 1 mg IV y continuar RCP",
+                    "C. Administrar amiodarona 300 mg IV",
+                    "D. Realizar intubación endotraqueal inmediata"
+                ],
+                answer: 1
+            },
+            {
+                q: "18. Paciente con bradicardia sintomática (presión arterial 80/40 mmHg, confusión, diaforesis), con un ritmo sinusal lento a 38 lpm en el monitor.\n\n¿Cuál es el manejo inicial más apropiado?",
+                options: [
+                    "A. Administrar amiodarona 150 mg IV",
+                    "B. Colocar marcapasos transcutáneo de inmediato",
+                    "C. Administrar atropina 1 mg IV",
+                    "D. Administrar adenosina 6 mg IV en bolo."
+                ],
+                answer: 2
+            },
+            {
+                q: "19. Durante la reanimación cardiopulmonar (RCP) de un paciente adulto intubado, se utiliza capnografía cuantitativa en forma de onda. ¿Cuál de los siguientes valores de presión parcial de CO2 al final de la espiración (PETCO2), mantenido de forma consistente durante las compresiones torácicas, se asocia con una RCP de mayor calidad y un aumento en la probabilidad de retorno a la circulación espontánea (RCE)?",
+                options: [
+                    "A) PETCO2 persistentemente < 10 mmHg.",
+                    "B) Un descenso progresivo del PETCO2 de 20 mmHg a 10 mmHg a lo largo de varios ciclos de RCP.",
+                    "C) PETCO2 que se mantiene consistentemente entre 15-25 mmHg.",
+                    "D) Un aumento súbito y sostenido del PETCO2 a 5 mmHg tras un período de valores más altos."
+                ],
+                answer: 2
+            },
+            {
+                q: "20. Un estudio observacional de cohorte en múltiples hospitales (Stewart et al., Crit Care Med 2024), analizó la variación en la administración de adrenalina antes de la desfibrilación en paradas cardíacas intrahospitalarias (PCIH) con ritmo desfibrilable. ¿Cuál fue el hallazgo principal de este estudio en relación con el momento de administración de la adrenalina y los resultados en estos pacientes?",
+                options: [
+                    "A) La administración temprana de adrenalina (antes de la primera desfibrilación) se asoció con una mejora significativa en la supervivencia con buen estado neurológico.",
+                    "B) Tasas más altas de administración de adrenalina antes de la desfibrilación se asociaron con tasas más bajas de supervivencia y de resultados neurológicos favorables.",
+                    "C) No hubo diferencias significativas en los resultados independientemente del momento de administración de la adrenalina en relación con la desfibrilación.",
+                    "D) Retrasar la adrenalina hasta después del tercer intento de desfibrilación se asoció con los mejores resultados de supervivencia."
+                ],
+                answer: 1
+            },
+            {
+                q: "21. Considerando la inervación autonómica del corazón y los receptores implicados, ¿cuál de las siguientes acciones y mecanismos describe más precisamente el efecto predominante de la estimulación simpática sobre la contractilidad ventricular?",
+                options: [
+                    "A) Aumento de la contractilidad mediado por receptores β2​, a través de la fosforilación del fosfolambano.",
+                    "B) Aumento de la contractilidad mediado por receptores β1​, a través del incremento de la corriente de ICa​ y la fosforilación del fosfolambano.",
+                    "C) Disminución de la contractilidad mediada por receptores α1​, a través de la disminución de la corriente de ICa​.",
+                    "D) Aumento de la contractilidad mediado por receptores M2​, a través del incremento de la corriente IK−Ach​."
+                ],
+                answer: 1
+            },
+            {
+                q: "22. El reflejo barorreceptor es un mecanismo crucial para la regulación rápida de la presión arterial. Ante una disminución aguda de la presión arterial, ¿cuál es la secuencia de eventos neuronales y efectores que correctamente describe la respuesta compensatoria?",
+                options: [
+                    "A) Aumento de la descarga de los barorreceptores, estimulación del núcleo del tracto solitario, aumento de la actividad parasimpática y disminución de la actividad simpática.",
+                    "B) Disminución de la descarga de los barorreceptores, inhibición del núcleo del tracto solitario, disminución de la actividad parasimpática y aumento de la actividad simpática.",
+                    "C) Aumento de la descarga de los barorreceptores, inhibición del núcleo del tracto solitario, aumento de la actividad parasimpática y aumento de la actividad simpática.",
+                    "D) Disminución de la descarga de los barorreceptores, estimulación del núcleo del tracto solitario, aumento de la actividad parasimpática sin cambios en la actividad simpática."
+                ],
+                answer: 1
+            },
+            {
+                q: "23. La regulación de la presión arterial involucra múltiples mecanismos que actúan en diferentes escalas de tiempo. ¿Cuál de los siguientes mecanismos de control de la presión arterial se caracteriza por tener la mayor ganancia de retroalimentación para corregir cambios agudos en la presión (en segundos a minutos) pero muestra adaptación o 'reseteo' con cambios sostenidos de la presión?",
+                options: [
+                    "A) Control renal del volumen y la presión.",
+                    "B) Vasoconstricción por renina-angiotensina.",
+                    "C) Respuesta isquémica del sistema nervioso central.",
+                    "D) Barorreceptores arteriales."
+                ],
+                answer: 3
+            },
+            {
+                q: "24. La administración intravenosa de catecolaminas como la epinefrina y la norepinefrina produce efectos hemodinámicos distintos debido a sus perfiles de afinidad por los receptores adrenérgicos. ¿Cuál de las siguientes afirmaciones distingue correctamente el efecto de la epinefrina del de la norepinefrina en dosis farmacológicas?",
+                options: [
+                    "A) La norepinefrina típicamente causa un mayor aumento de la frecuencia cardíaca que la epinefrina debido a su selectividad por los receptores β1​.",
+                    "B) La epinefrina, especialmente a dosis bajas, puede causar vasodilatación en ciertos lechos vasculares (músculo esquelético) mediada por receptores β2​, lo que puede resultar en un aumento de la presión de pulso sin un aumento significativo o incluso una disminución de la presión diastólica.",
+                    "C) La norepinefrina produce una disminución más pronunciada de la resistencia vascular sistémica en comparación con la epinefrina.",
+                    "D) Ambas catecolaminas producen efectos cardiovasculares idénticos, diferenciándose únicamente en su potencia."
+                ],
+                answer: 1
+            },
+            {
+                q: "25. Dentro del sistema nervioso central, el bulbo raquídeo es un sitio principal para la regulación cardiovascular. ¿Qué núcleo específico dentro del bulbo raquídeo actúa como el principal centro de integración para las aferencias de los barorreceptores y quimiorreceptores arteriales, modulando subsecuentemente el tono simpático y parasimpático cardiovascular?",
+                options: [
+                    "A) El núcleo motor dorsal del vago.",
+                    "B) El núcleo ambiguo.",
+                    "C) El núcleo del tracto solitario.",
+                    "D) La región rostral ventrolateral del bulbo (RVLM)."
+                ],
+                answer: 2
+            },
+            {
+                q: "26. La ivabradina, incluida en la Clase 0 de la clasificación actualizada de antiarrítmicos, ejerce su efecto principal a través de la modulación de un canal iónico específico. ¿Cuál es el mecanismo de acción primario de la ivabradina y su consecuencia electrofisiológica principal?",
+                options: [
+                    "A) Bloqueo de los canales de sodio rápidos (INa), disminuyendo la velocidad de la fase 0 del potencial de acción en miocitos ventriculares.",
+                    "B) Inhibición selectiva de la corriente If (corriente 'funny') en el nodo sinoauricular, lo que reduce la pendiente de despolarización diastólica y la frecuencia cardíaca.",
+                    "C) Bloqueo de los canales de potasio rectificadores tardíos (IKr), prolongando la duración del potencial de acción y el intervalo QT.",
+                    "D) Bloqueo de los canales de calcio tipo L, disminuyendo la conducción a través del nodo auriculoventricular y la contractilidad miocárdica."
+                ],
+                answer: 1
+            },
+            {
+                q: "27. Los fármacos antiarrítmicos de Clase I se subclasifican según su efecto sobre los canales de sodio y la duración del potencial de acción. ¿Qué característica electrofisiológica distingue principalmente a los agentes de Clase Ib (p.ej., lidocaína, mexiletina) de los de Clase Ia y Ic?",
+                options: [
+                    "A) Producen un bloqueo intenso y de lenta cinética de los canales de sodio, prolongando marcadamente el QRS y el intervalo QT.",
+                    "B) Se disocian rápidamente de los canales de sodio, acortan la duración del potencial de acción en algunas fibras y son más efectivos en taquicardias ventriculares, especialmente en tejido isquémico.",
+                    "C) Muestran una cinética de bloqueo intermedia y prolongan uniformemente la duración del potencial de acción y el periodo refractario efectivo.",
+                    "D) No tienen efecto sobre la duración del potencial de acción, pero enlentecen significativamente la conducción en todas las fibras cardíacas."
+                ],
+                answer: 1
+            },
+            {
+                q: "28. La propafenona es un fármaco antiarrítmico con un perfil farmacológico complejo. Además de su conocida actividad como bloqueante de los canales de sodio (Clase Ic), ¿qué otra propiedad antiarrítmica, según la clasificación actualizada, contribuye a su utilidad en el tratamiento de arritmias como la taquicardia ventricular polimórfica catecolaminérgica (TVPC)?",
+                options: [
+                    "A) Actividad simpaticolítica intrínseca (Clase II).",
+                    "B) Bloqueo de canales de potasio (Clase III).",
+                    "C) Bloqueo de canales de calcio intracelulares (Clase IVb).",
+                    "D) Inhibición de la corriente If (Clase 0)."
+                ],
+                answer: 2
+            },
+            {
+                q: "29. Los betabloqueantes (Clase II) son fundamentales en el tratamiento de diversas arritmias. Más allá de su efecto cronotrópico negativo, ¿en cuál de las siguientes condiciones específicas son considerados terapia de primera línea por su capacidad de mitigar los desencadenantes adrenérgicos y reducir eventos cardíacos adversos?",
+                options: [
+                    "A) Síndrome de Brugada y fibrilación auricular paroxística en atletas.",
+                    "B) Taquicardia ventricular idiopática del tracto de salida del ventrículo derecho y disautonomías.",
+                    "C) Síndrome de QT largo y taquicardia ventricular polimórfica catecolaminérgica.",
+                    "D) Síndrome de Wolff-Parkinson-White con vía accesoria de conducción rápida."
+                ],
+                answer: 2
+            },
+            {
+                q: "30. La Clase VII de la clasificación actualizada de antiarrítmicos, denominada 'Moduladores diana de flujo' o 'Upstream target modulators', incluye agentes como los ácidos grasos omega-3, estatinas e inhibidores del sistema renina-angiotensina-aldosterona. ¿Cuál es el concepto fundamental que subyace al potencial efecto antiarrítmico de estos fármacos?",
+                options: [
+                    "A) Bloqueo directo y selectivo de canales iónicos específicos (Na+, K+, Ca2+) que altera agudamente el potencial de acción cardíaco.",
+                    "B) Modificación del sustrato arritmogénico a largo plazo, actuando sobre procesos como la inflamación, la fibrosis, el remodelado estructural o el tono autonómico.",
+                    "C) Estimulación directa de receptores muscarínicos M2, incrementando el tono vagal y reduciendo la automaticidad del nodo sinusal.",
+                    "D) Inhibición competitiva de enzimas clave en las cascadas de señalización intracelular responsables de la generación de pospotenciales."
+                ],
+                answer: 1
+            }
+        ];
+
+        const form = document.getElementById('examForm');
+        let currentQuestion = 0;
+        let userAnswers = Array(questions.length).fill(null);
+        const submitBtn = document.getElementById('submitBtn'); // Obtener referencia al botón
+
+        function showAlert(message, type = 'warning') {
+            const alertPlaceholder = document.getElementById('alertPlaceholder');
+            alertPlaceholder.innerHTML = `<div class='alert alert-${type} alert-dismissible fade show mt-3' role='alert'>${message}<button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button></div>`;
+        }
+
+        function renderQuestion(idx) {
+            // Transición de salida si no es la primera pregunta
+            if (form.firstChild) {
+                anime({
+                    targets: '.question',
+                    translateX: -100,
+                    opacity: 0,
+                    duration: 400,
+                    easing: 'easeInCubic',
+                    complete: function() {
+                        showNextQuestion(idx);
+                    }
+                });
+            } else {
+                showNextQuestion(idx);
+            }
+        }
+
+        function showNextQuestion(idx) {
+            form.innerHTML = ''; // Limpiar el formulario para la nueva pregunta
+            const q = questions[idx];
+            const div = document.createElement('div');
+            div.className = 'question question-anim';
+            let qText = q.q;
+            let imgHtml = '';
+            const imgMatch = qText.match(/<img [^>]*src=["'][^"']+["'][^>]*>/i);
+            if (imgMatch) {
+                imgHtml = imgMatch[0];
+                qText = qText.replace(imgMatch[0], '');
+            }
+            qText = qText.replace(/<br>$/i, '').trim();
+            div.innerHTML = `<h2>${qText}</h2>
+                ${imgHtml ? `<div class='text-center my-3'>${imgHtml}</div>` : ''}
+                <div class="options">
+                    ${q.options.map((opt, i) =>
+                        `<label class='form-check-label d-block mb-2'><input type="radio" class="form-check-input me-2" name="q${idx}" value="${i}"> ${opt}</label>`
+                    ).join('')}
+                </div>
+                <div id="feedback${idx}"></div>
+            `;
+            form.appendChild(div);
+
+            // El botón de enviar siempre estará visible, solo cambiará su estado de deshabilitado.
+            // No es necesario ocultarlo aquí.
+
+            anime({
+                targets: '.question',
+                translateX: [100, 0],
+                opacity: [0, 1],
+                duration: 400,
+                easing: 'easeOutCubic'
+            });
+
+            form.querySelectorAll('input[type="radio"]').forEach(radio => {
+                radio.onclick = function() {
+                    anime({
+                        targets: radio.parentElement,
+                        scale: [1, 1.08, 1],
+                        duration: 250,
+                        easing: 'easeInOutCubic'
+                    });
+                    setTimeout(() => {
+                        const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+                        document.getElementById('confirmModalLabel').textContent = 'Confirmar respuesta';
+                        document.getElementById('confirmModalBody').textContent = '¿Está seguro de la respuesta escogida?';
+                        document.getElementById('confirmModalYes').onclick = () => {
+                            userAnswers[idx] = parseInt(radio.value);
+                            modal.hide();
+
+                            // LÓGICA CLAVE: Habilitar el botón de enviar solo después de la última pregunta
+                            if (currentQuestion < questions.length - 1) { // Si NO es la última pregunta
+                                currentQuestion++;
+                                renderQuestion(currentQuestion); // Cargar la siguiente pregunta
+                            } else { // Si ES la última pregunta
+                                // Ya se respondió la última pregunta y se confirmó
+                                submitBtn.disabled = false; // <-- HABILITAR EL BOTÓN
+                                // Opcional: Hacer scroll para que el botón sea visible si no lo está
+                                submitBtn.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                            }
+                        };
+                        document.getElementById('confirmModalNo').onclick = () => {
+                            radio.checked = false; // Desmarcar la opción si el usuario cancela
+                            modal.hide();
+                        };
+                        modal.show();
+                    }, 100);
+                };
+            });
+        }
+
+        // Timer logic
+        let timerInterval;
+        let timeLeft = 60 * 60; // 60 minutes in seconds
+        const totalTime = 60 * 60;
+        function startTimer() {
+            function updateTimer() {
+                const min = Math.floor(timeLeft / 60);
+                const sec = timeLeft % 60;
+                document.getElementById('timer').textContent = `${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+                // Animación de color del temporizador
+                if (timeLeft === Math.floor(0.3 * totalTime)) {
+                    anime({
+                        targets: '#timer',
+                        color: '#FFD600',
+                        duration: 800,
+                        easing: 'linear'
+                    });
+                }
+                if (timeLeft === Math.floor(0.1 * totalTime)) {
+                    anime({
+                        targets: '#timer',
+                        color: '#FF1744',
+                        duration: 800,
+                        easing: 'linear'
+                    });
+                }
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById('timer').textContent = '00:00';
+                    form.querySelectorAll('input').forEach(inp => inp.disabled = true);
+                    submitBtn.disabled = true; // Deshabilitar el botón si el tiempo se acaba
+                    document.getElementById('score').innerHTML = '<b>Tiempo finalizado. El examen ha sido deshabilitado.</b>';
+                }
+                timeLeft--;
+            }
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        // Exam start logic
+        document.getElementById('startExamBtn').onclick = function() {
+            const name = document.getElementById('residentName').value.trim();
+            const date = document.getElementById('examDate').value;
+            if (!name || !date) {
+                showAlert('Por favor, ingrese el nombre y la fecha antes de comenzar el examen.', 'danger');
+                return;
+            }
+            document.getElementById('preExam').style.display = 'none';
+            document.getElementById('examInfo').style.display = '';
+            document.getElementById('examForm').style.display = '';
+            // El botón de enviar ya está deshabilitado por HTML. No es necesario modificarlo aquí.
+            document.getElementById('showName').textContent = name;
+            document.getElementById('showDate').textContent = date;
+            currentQuestion = 0;
+            userAnswers = Array(questions.length).fill(null);
+            renderQuestion(currentQuestion);
+            startTimer();
+        };
+
+        // jsPDF generation logic
+        let finalScore = 0;
+        let pdfGenerated = false;
+        let examSubmitted = false;
+        let pdfBtn = null;
+
+        function generatePDF() {
+            if (!examSubmitted) return;
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const name = document.getElementById('residentName').value.trim();
+            const date = document.getElementById('examDate').value;
+            let y = 15;
+            doc.setFontSize(16);
+            doc.text('Examen de Residencia - RCP y Vía Aérea', 105, y, { align: 'center' });
+            y += 10;
+            doc.setFontSize(12);
+            doc.text(`Nombre del residente: ${name}`, 15, y);
+            y += 8;
+            doc.text(`Fecha: ${date}`, 15, y);
+            y += 8;
+            doc.text(`Nota final: ${finalScore} / 100`, 15, y);
+            y += 10;
+            doc.setFontSize(11);
+            questions.forEach((q, idx) => {
+                // Validar que la pregunta tenga texto y opciones y respuesta válida
+                let malformed = false;
+                if (!q || typeof q !== 'object') malformed = true;
+                if (!q.q || typeof q.q !== 'string') malformed = true;
+                if (!Array.isArray(q.options) || q.options.length === 0) malformed = true;
+                if (typeof q.answer !== 'number' || q.answer < 0 || q.answer >= (q.options ? q.options.length : 0)) malformed = true;
+                if (y > 270) { doc.addPage(); y = 15; }
+                // Eliminar cualquier imagen HTML del texto de la pregunta para el PDF
+                let cleanQText = q.q.replace(/<img[^>]*>/g, '').replace(/<video[^>]*>.*?<\/video>/g, '').replace(/<div[^>]*>.*?<\/div>/g, '').trim();
+
+                doc.text(`Pregunta ${idx + 1}:`, 15, y);
+                y += 6;
+                if (malformed) {
+                    doc.setTextColor(200, 0, 0);
+                    doc.text('Pregunta malformada o incompleta. No se puede mostrar.', 18, y);
+                    doc.setTextColor(0,0,0);
+                    y += 12;
+                    return;
+                }
+                // Ajustar la pregunta para que quepa en la línea
+                doc.text(doc.splitTextToSize(cleanQText, 180), 18, y); // 180 es el ancho máximo
+                y += (doc.splitTextToSize(cleanQText, 180).length * 4) + 2; // Ajustar y en función de las líneas ocupadas
+
+
+                // Validar respuesta del usuario
+                let userAnswerIdx = userAnswers[idx];
+                let userAnswerText = (typeof userAnswerIdx === 'number' && userAnswerIdx >= 0 && userAnswerIdx < q.options.length)
+                    ? q.options[userAnswerIdx]
+                    : 'Sin respuesta válida';
+                doc.text(`Respuesta del residente: ${userAnswerText}`, 18, y);
+                y += 6;
+                let correctAnswerText = (typeof q.answer === 'number' && q.answer >= 0 && q.answer < q.options.length)
+                    ? q.options[q.answer]
+                    : 'No disponible';
+                doc.text(`Respuesta correcta: ${correctAnswerText}`, 18, y);
+                y += 6;
+                const correcto = userAnswerIdx === q.answer;
+                // Color para correcto/incorrecto
+                if (userAnswerText === 'Sin respuesta válida' || correctAnswerText === 'No disponible') {
+                    doc.setTextColor(128, 128, 128); // gris para no evaluable
+                    doc.text('No evaluable', 18, y);
+                } else if (correcto) {
+                    doc.setTextColor(0, 128, 0); // verde para correcto
+                    doc.text('✔ Correcto', 18, y);
+                } else {
+                    doc.setTextColor(200, 0, 0); // rojo para incorrecto
+                    doc.text('✘ Incorrecto', 18, y);
+                }
+                doc.setTextColor(0,0,0);
+                y += 8;
+            });
+            doc.save(`Examen_R1_${name.replace(/\s+/g,'_')}_${date}.pdf`);
+        }
+
+        submitBtn.onclick = function(e) { // Usar la referencia 'submitBtn'
+            e.preventDefault();
+            if (examSubmitted) return;
+            examSubmitted = true;
+            clearInterval(timerInterval); // Detener el temporizador al enviar
+            let correct = 0;
+            form.innerHTML = ''; // Limpiar el formulario de las preguntas individuales
+            questions.forEach((q, idx) => {
+                const isCorrect = userAnswers[idx] === q.answer;
+                if (isCorrect) correct++;
+                const div = document.createElement('div');
+                div.className = (isCorrect ? 'correct' : 'incorrect') + ' resumen-pregunta';
+                // Limpiar el HTML de la pregunta para el resumen si contiene imágenes/videos
+                const cleanQText = q.q.replace(/<img[^>]*>/g, '').replace(/<video[^>]*>.*?<\/video>/g, '').replace(/<div[^>]*>.*?<\/div>/g, '').trim();
+                div.innerHTML = `<b>Pregunta ${idx+1}:</b> ${isCorrect ? '✔ Correcto' : '✘ Incorrecto'}<br><span style='font-weight:normal;'>${cleanQText}</span>`;
+                form.appendChild(div);
+            });
+            // Puntaje animado
+            anime({
+                targets: { val: 0 },
+                val: correct,
+                round: 1,
+                duration: 1200,
+                easing: 'easeOutExpo',
+                update: function(anim) {
+                    document.getElementById('score').textContent = `Puntaje final: ${anim.animations[0].currentValue} / ${questions.length}`;
+                },
+                complete: function() {
+                    finalScore = Math.round((correct / questions.length) * 100);
+                    if (!pdfGenerated) {
+                        pdfBtn = document.createElement('button');
+                        pdfBtn.className = 'btn btn-outline-primary fw-bold d-block mx-auto mt-4';
+                        pdfBtn.textContent = 'Descargar PDF corregido';
+                        pdfBtn.onclick = generatePDF;
+                        document.getElementById('score').appendChild(pdfBtn);
+                        // Nuevo: botón guardar en Google Sheet
+                        const saveBtn = document.createElement('button');
+                        saveBtn.className = 'btn btn-outline-success fw-bold d-block mx-auto mt-3';
+                        saveBtn.textContent = 'Guardar en Google Sheet';
+                        saveBtn.onclick = function() {
+                            // Enviar datos a Google Apps Script
+                            const nombre = document.getElementById('residentName').value.trim();
+                            const fechaExamen = document.getElementById('examDate').value;
+                            const nombreExamen = document.querySelector('h1').innerText.trim();
+                            const nota = finalScore;
+                            fetch('https://script.google.com/macros/s/AKfycbz_J4zfRNbug9Yx9BMISpxFP7Yox0BCmuq1_Hod5h2xDmnOXO9jHGjsde8O-ElfKrSJvg/exec', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    nombre: nombre,
+                                    fechaExamen: fechaExamen,
+                                    nombreExamen: nombreExamen,
+                                    nota: nota
+                                })
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.status === 'success') {
+                                    alert('Guardado en Google Sheet correctamente');
+                                } else {
+                                    alert('Error al guardar: ' + data.message);
+                                }
+                            })
+                            .catch(err => {
+                                alert('Error de conexión: ' + err.message);
+                            });
+                        };
+                        document.getElementById('score').appendChild(saveBtn);
+                        pdfGenerated = true;
+                    }
+                }
+            });
+            anime({
+                targets: '.resumen-pregunta',
+                opacity: [0, 1],
+                translateY: [20, 0],
+                delay: anime.stagger(120),
+                duration: 500,
+                easing: 'easeOutCubic'
+            });
+            window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
+            submitBtn.disabled = true; // Deshabilitar el botón una vez enviado
+        };
+
+        // No es necesario un window.onload para ocultar, ya que el atributo disabled lo maneja.
+        // Pero mantenemos la referencia al botón en una constante para uso más fácil.
+        // window.onload = function() { }; // Esta línea y su contenido se eliminan.
+    </script>
+    <!-- Modal de confirmación Bootstrap -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="confirmModalLabel">Confirmar respuesta</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body" id="confirmModalBody">
+            ¿Está seguro de la respuesta escogida?
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="confirmModalNo" data-bs-dismiss="modal">No</button>
+            <button type="button" class="btn btn-primary" id="confirmModalYes">Sí</button>
+          </div>
+        </div>
+      </div>
+    </div>
+</body>
+</html>
