@@ -464,6 +464,9 @@
         let userAnswers = Array(questions.length).fill(null);
         const submitBtn = document.getElementById('submitBtn'); // Obtener referencia al botón
 
+        // *** URL ACTUALIZADA DE TU APPS SCRIPT ***
+        const APP_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw__FNMmkADMMJfJcec7wiY2X06Z7R9BnIU-ObQ6P1tiOBr5gSfyjuuomdMVKgkssK9HA/exec'; 
+
         function showAlert(message, type = 'warning') {
             const alertPlaceholder = document.getElementById('alertPlaceholder');
             alertPlaceholder.innerHTML = `<div class='alert alert-${type} alert-dismissible fade show mt-3' role='alert'>${message}<button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button></div>`;
@@ -618,19 +621,19 @@
             startTimer();
         };
 
-        // jsPDF generation logic
-        let finalScore = 0;
+        let finalScore = 0; // Se inicializa para el cálculo del puntaje
         let pdfGenerated = false;
         let examSubmitted = false;
-        let pdfBtn = null;
+        let pdfBtn = null; // Referencia al botón de descarga PDF
 
-        function generatePDF() {
-            if (!examSubmitted) return;
+        // Esta función ahora también se encarga de obtener el Base64 del PDF
+        function generatePdfData() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             const name = document.getElementById('residentName').value.trim();
             const date = document.getElementById('examDate').value;
             let y = 15;
+
             doc.setFontSize(16);
             doc.text('Examen de Residencia - RCP y Vía Aérea', 105, y, { align: 'center' });
             y += 10;
@@ -643,14 +646,13 @@
             y += 10;
             doc.setFontSize(11);
             questions.forEach((q, idx) => {
-                // Validar que la pregunta tenga texto y opciones y respuesta válida
                 let malformed = false;
                 if (!q || typeof q !== 'object') malformed = true;
                 if (!q.q || typeof q.q !== 'string') malformed = true;
                 if (!Array.isArray(q.options) || q.options.length === 0) malformed = true;
                 if (typeof q.answer !== 'number' || q.answer < 0 || q.answer >= (q.options ? q.options.length : 0)) malformed = true;
                 if (y > 270) { doc.addPage(); y = 15; }
-                // Eliminar cualquier imagen HTML del texto de la pregunta para el PDF
+
                 let cleanQText = q.q.replace(/<img[^>]*>/g, '').replace(/<video[^>]*>.*?<\/video>/g, '').replace(/<div[^>]*>.*?<\/div>/g, '').trim();
 
                 doc.text(`Pregunta ${idx + 1}:`, 15, y);
@@ -662,12 +664,9 @@
                     y += 12;
                     return;
                 }
-                // Ajustar la pregunta para que quepa en la línea
-                doc.text(doc.splitTextToSize(cleanQText, 180), 18, y); // 180 es el ancho máximo
-                y += (doc.splitTextToSize(cleanQText, 180).length * 4) + 2; // Ajustar y en función de las líneas ocupadas
+                doc.text(doc.splitTextToSize(cleanQText, 180), 18, y);
+                y += (doc.splitTextToSize(cleanQText, 180).length * 4) + 2;
 
-
-                // Validar respuesta del usuario
                 let userAnswerIdx = userAnswers[idx];
                 let userAnswerText = (typeof userAnswerIdx === 'number' && userAnswerIdx >= 0 && userAnswerIdx < q.options.length)
                     ? q.options[userAnswerIdx]
@@ -680,36 +679,42 @@
                 doc.text(`Respuesta correcta: ${correctAnswerText}`, 18, y);
                 y += 6;
                 const correcto = userAnswerIdx === q.answer;
-                // Color para correcto/incorrecto
                 if (userAnswerText === 'Sin respuesta válida' || correctAnswerText === 'No disponible') {
-                    doc.setTextColor(128, 128, 128); // gris para no evaluable
+                    doc.setTextColor(128, 128, 128);
                     doc.text('No evaluable', 18, y);
                 } else if (correcto) {
-                    doc.setTextColor(0, 128, 0); // verde para correcto
+                    doc.setTextColor(0, 128, 0);
                     doc.text('✔ Correcto', 18, y);
                 } else {
-                    doc.setTextColor(200, 0, 0); // rojo para incorrecto
+                    doc.setTextColor(200, 0, 0);
                     doc.text('✘ Incorrecto', 18, y);
                 }
                 doc.setTextColor(0,0,0);
                 y += 8;
             });
-            doc.save(`Examen_R1_${name.replace(/\s+/g,'_')}_${date}.pdf`);
+            
+            // Genera el nombre del archivo PDF
+            const pdfFileName = `Examen_R1_${name.replace(/\s+/g,'_')}_${date}.pdf`;
+
+            // Retorna el contenido del PDF como una cadena Base64 y el nombre del archivo
+            return {
+                base64: doc.output('datauristring').split(',')[1], // Solo la parte Base64
+                fileName: pdfFileName
+            };
         }
 
-        submitBtn.onclick = function(e) { // Usar la referencia 'submitBtn'
+        submitBtn.onclick = function(e) { 
             e.preventDefault();
             if (examSubmitted) return;
             examSubmitted = true;
-            clearInterval(timerInterval); // Detener el temporizador al enviar
+            clearInterval(timerInterval); 
             let correct = 0;
-            form.innerHTML = ''; // Limpiar el formulario de las preguntas individuales
+            form.innerHTML = ''; 
             questions.forEach((q, idx) => {
                 const isCorrect = userAnswers[idx] === q.answer;
                 if (isCorrect) correct++;
                 const div = document.createElement('div');
                 div.className = (isCorrect ? 'correct' : 'incorrect') + ' resumen-pregunta';
-                // Limpiar el HTML de la pregunta para el resumen si contiene imágenes/videos
                 const cleanQText = q.q.replace(/<img[^>]*>/g, '').replace(/<video[^>]*>.*?<\/video>/g, '').replace(/<div[^>]*>.*?<\/div>/g, '').trim();
                 div.innerHTML = `<b>Pregunta ${idx+1}:</b> ${isCorrect ? '✔ Correcto' : '✘ Incorrecto'}<br><span style='font-weight:normal;'>${cleanQText}</span>`;
                 form.appendChild(div);
@@ -727,17 +732,54 @@
                 complete: function() {
                     finalScore = Math.round((correct / questions.length) * 100);
                     if (!pdfGenerated) {
+                        // Descargar PDF localmente (opción ya existente)
                         pdfBtn = document.createElement('button');
                         pdfBtn.className = 'btn btn-outline-primary fw-bold d-block mx-auto mt-4';
                         pdfBtn.textContent = 'Descargar PDF corregido';
-                        pdfBtn.onclick = generatePDF;
+                        pdfBtn.onclick = function() {
+                            const pdfData = generatePdfData(); // Genera el PDF y obtiene los datos
+                            // Como jsPDF ya maneja la descarga directamente, no necesitamos re-crear `doc` aquí
+                            // jsPDF.output('dataurlnewwindow') abre en una nueva ventana para visualización o descarga
+                            const { jsPDF } = window.jspdf;
+                            const docInstanceForDownload = new jsPDF(); // Crear una nueva instancia para esta acción
+                            // Re-agregar contenido al docInstanceForDownload si es necesario para una descarga directa.
+                            // Una forma simple es re-ejecutar generatePdfData().
+                            // Para mantener el código más limpio y evitar duplicar la generación de contenido en doc,
+                            // podemos hacer esto:
+                            docInstanceForDownload.text(`Contenido del examen para PDF.`, 10, 10); // Placeholder
+                            // Para la descarga real, simplemente podrías hacer:
+                            // window.open('data:application/pdf;base64,' + pdfData.base64); // Abre en nueva ventana
+                            // O si quieres que se descargue directamente:
+                            const tempDoc = new jsPDF(); // Temporal para la descarga local
+                            // El contenido para tempDoc debería ser el mismo que para generatePdfData().
+                            // Por ahora, para simplificar y asegurar que la función generatePdfData funcione una vez,
+                            // lo ideal sería que generatePdfData retorne un objeto jsPDF o un blob.
+                            // Para el propósito de descarga local, el método anterior `doc.save(fileName)` es lo más directo si doc está disponible.
+                            // Si generatePdfData ya crea un 'doc', podrías hacer:
+                            const { doc: finalDocForDownload } = new jsPDF(); // Dummy instantiation, you need the actual doc
+                            // Aclaración: Para que el botón de descarga local funcione bien, generatePdfData debería retornar el objeto doc (jsPDF) en lugar de solo el base64.
+                            // Por ahora, para que funcione, generamos un nuevo doc con los mismos datos.
+                            // O la forma más sencilla:
+                            const { jsPDF: jspdfForDownload } = window.jspdf;
+                            const newDocForDownload = new jspdfForDownload();
+                            // Aquí se debería volver a poblar newDocForDownload con el contenido del examen
+                            // Una solución más limpia es almacenar el objeto 'doc' temporalmente o que generatePdfData lo retorne.
+                            // Por simplicidad, si generatePdfData ya da el base64, podemos forzar la descarga así:
+                            const link = document.createElement('a');
+                            link.href = 'data:application/pdf;base64,' + pdfData.base64;
+                            link.download = pdfData.fileName;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            showAlert('PDF descargado localmente.', 'info');
+                        };
                         document.getElementById('score').appendChild(pdfBtn);
 
-                        // MODIFICACIÓN COMPLETA DEL BOTÓN DE GUARDAR EN GOOGLE SHEET
+                        // Botón para guardar resultados y PDF en Google Sheet
                         const saveBtn = document.createElement('button');
                         saveBtn.className = 'btn btn-outline-success fw-bold d-block mx-auto mt-3';
-                        saveBtn.textContent = 'Guardar resultados en Google Sheet'; // Texto más descriptivo
-                        saveBtn.onclick = async function() { // Función asíncrona para usar await
+                        saveBtn.textContent = 'Guardar resultados y PDF en Google Sheet'; 
+                        saveBtn.onclick = async function() { 
                             const residentName = document.getElementById('residentName').value.trim();
                             const examDate = document.getElementById('examDate').value;
 
@@ -746,56 +788,32 @@
                                 return;
                             }
 
-                            // Prepara los detalles de las respuestas en un formato que el Apps Script pueda entender
-                            const detailedAnswers = questions.map((q, idx) => {
-                                const userAnswerIndex = userAnswers[idx];
-                                const isCorrect = userAnswerIndex === q.answer;
-                                // Obtener el texto de la opción seleccionada por el usuario
-                                const userAnswerText = (typeof userAnswerIndex === 'number' && userAnswerIndex >= 0 && userAnswerIndex < q.options.length)
-                                                        ? q.options[userAnswerIndex]
-                                                        : 'No respondido';
-                                // Obtener el texto de la opción correcta
-                                const correctAnswerText = (typeof q.answer === 'number' && q.answer >= 0 && q.answer < q.options.length)
-                                                         ? q.options[q.answer]
-                                                         : 'No disponible';
-                                
-                                // Limpiar el texto de la pregunta (eliminar HTML) para incluirlo en el detalle
-                                const cleanQText = q.q.replace(/<img[^>]*>/g, '').replace(/<video[^>]*>.*?<\/video>/g, '').replace(/<div[^>]*>.*?<\/div>/g, '').trim();
-
-                                return {
-                                    questionNum: idx + 1,
-                                    questionText: cleanQText, // Opcional: guardar el texto de la pregunta también
-                                    userAnswer: userAnswerText,
-                                    correctAnswer: correctAnswerText,
-                                    isCorrect: isCorrect
-                                };
-                            });
+                            // Generar el PDF y obtener su Base64 y nombre de archivo
+                            const pdfOutput = generatePdfData(); // Llama a la función que genera el PDF y devuelve Base64
+                            const pdfBase64 = pdfOutput.base64;
+                            const pdfFileName = pdfOutput.fileName;
 
                             const dataToSend = {
-                                name: residentName,    // Coincide con lo esperado por Apps Script
-                                date: examDate,       // Coincide con lo esperado por Apps Script
-                                finalScore: finalScore, // Coincide con lo esperado por Apps Script
-                                answers: detailedAnswers // Array de objetos con el detalle de las respuestas
+                                name: residentName,    
+                                date: examDate,       
+                                finalScore: finalScore,
+                                pdfBase64: pdfBase64,     // Se envía el contenido Base64 del PDF
+                                pdfFileName: pdfFileName  // Se envía el nombre del archivo PDF
                             };
 
                             try {
-                                // *** URL ACTUALIZADA DE TU APPS SCRIPT ***
-                                const APP_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw__FNMmkADMMJfJcec7wiY2X06Z7R9BnIU-ObQ6P1tiOBr5gSfyjuuomdMVKgkssK9HA/exec'; 
-
                                 const response = await fetch(APP_SCRIPT_WEB_APP_URL, {
                                     method: 'POST',
-                                    // Sigue siendo 'text/plain' para evitar problemas CORS con preflight OPTIONS
                                     headers: {
-                                        'Content-Type': 'text/plain;charset=utf-8' 
+                                        'Content-Type': 'text/plain;charset=utf-8' // Importante para evitar CORS preflight
                                     },
                                     body: JSON.stringify(dataToSend) // Envía los datos como una cadena JSON
                                 });
 
-                                const result = await response.json(); // Parsea la respuesta JSON del script
+                                const result = await response.json();
 
-                                // El status del Apps Script es 'SUCCESS' en mayúsculas
                                 if (result.status === 'SUCCESS') { 
-                                    showAlert('Resultados guardados en Google Sheet exitosamente.', 'success');
+                                    showAlert('Resultados y PDF guardados en Google Sheet exitosamente.', 'success');
                                     saveBtn.disabled = true; // Deshabilita el botón para evitar envíos duplicados
                                 } else {
                                     showAlert(`Error al guardar: ${result.message}`, 'danger');
@@ -820,12 +838,8 @@
                 easing: 'easeOutCubic'
             });
             window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
-            submitBtn.disabled = true; // Deshabilitar el botón una vez enviado
+            submitBtn.disabled = true; 
         };
-
-        // No es necesario un window.onload para ocultar, ya que el atributo disabled lo maneja.
-        // Pero mantenemos la referencia al botón en una constante para uso más fácil.
-        // window.onload = function() { }; // Esta línea y su contenido se eliminan.
     </script>
     <!-- Modal de confirmación Bootstrap -->
     <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
